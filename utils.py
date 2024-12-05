@@ -6,6 +6,8 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
+from episodes_length import EPISODES_LENGTH_DATA
+
 
 def load_pkl_file(file_path):
     with open(file_path, 'rb') as f:
@@ -102,7 +104,20 @@ def find_closest_states(val_data, n_closest=10):
     return np.array(closest_states)
 
 
-def simulate_rollout(closest_states, prediction_results, max_length=100):
+def process_episode_lengths():
+    for taskname, data in EPISODES_LENGTH_DATA.items():
+        is_end = []
+        for i in range(len(data['idxs'])):
+            if data['val_mask'][data['idxs'][i]]:
+                if i == len(data['idxs']) - 1 or data['idxs'][i] != data['idxs'][i + 1]:
+                    is_end = is_end[:-data['offset']]
+                    is_end.append(1)
+                else:
+                    is_end.append(0)
+        data['is_end'] = np.array(is_end)
+
+
+def simulate_rollout(closest_states, prediction_results, taskname, max_length=1000):
     state = np.random.randint(0, len(closest_states))
     visited_states = [state]
     success = False
@@ -115,9 +130,13 @@ def simulate_rollout(closest_states, prediction_results, max_length=100):
             pred_action = prediction_results[supply_index // 256]['pred_action'][supply_index % 256]
             losses.append(np.linalg.norm(gt_action - pred_action, ord=2))
 
-        state = closest_states[state][np.argmin(losses)] + 1  # TODO use the transition instead of state itself
-        visited_states.append(state)
+        trans = closest_states[state][np.argmin(losses)]
 
-        # if state is solving, success = True, break
+        if EPISODES_LENGTH_DATA[taskname]['is_end'][trans]:
+            success = True
+            break
+        else:
+            state = trans + 1
+            visited_states.append(state)
 
-    return success, visited_states
+    return success

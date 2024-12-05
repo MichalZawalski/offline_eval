@@ -1,18 +1,13 @@
-import math
-from collections import defaultdict
-from datetime import datetime
-
-import torch
 import os
-import pickle
-import numpy as np
-import matplotlib.pyplot as plt
+from collections import defaultdict
 
+import numpy as np
 from utils import load_pkl_file, make_single_plots, get_correlation_metrics, find_closest_states, simulate_rollout
 
 
 def get_closest_losses(output_dir, start_epoch, end_epoch, step_size=1):
     metaname = output_dir.split('/')[-1]
+    taskname = output_dir.split('_train_')[-1]
     res = defaultdict(list)
     scores = []
     score_epochs = []
@@ -54,7 +49,7 @@ def get_closest_losses(output_dir, start_epoch, end_epoch, step_size=1):
             losses['closest mean'].append(np.mean(close_losses))
             losses['closest max'].append(np.max(close_losses))
 
-        # res['sim rollout'].append(np.mean([simulate_rollout(closest_states, prediction_results) for _ in range(10)]))
+        res['sim rollout'].append(np.mean([simulate_rollout(closest_states, prediction_results, taskname) for _ in range(10)]))
 
         res['epoch'].append(epoch)
         for k, v in losses.items():
