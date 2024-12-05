@@ -49,7 +49,7 @@ def get_closest_losses(output_dir, start_epoch, end_epoch, step_size=1):
             losses['closest mean'].append(np.mean(close_losses))
             losses['closest max'].append(np.max(close_losses))
 
-        res['sim rollout'].append(np.mean([simulate_rollout(closest_states, prediction_results, taskname) for _ in range(10)]))
+        # res['sim rollout'].append(np.mean([simulate_rollout(closest_states, prediction_results, taskname) for _ in range(10)]))
 
         res['epoch'].append(epoch)
         for k, v in losses.items():

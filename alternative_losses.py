@@ -38,6 +38,7 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
 
         val_data = data['val_data']
         prediction_results = data['val_prediction_results']
+        per_sample_losses = data['per_sample_losses']
 
         losses = defaultdict(list)
 
@@ -51,6 +52,7 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
             gt_action = prediction_results[batch_number]['gt_action'][index_in_batch]
             pred_action = prediction_results[batch_number]['pred_action'][index_in_batch]
 
+            losses['plain_validation'].append(np.mean(per_sample_losses[batch_number][index_in_batch]))
             losses['l1'].append(np.linalg.norm(gt_action - pred_action, ord=1))
             l2_distance = np.linalg.norm(gt_action - pred_action, ord=2)
             losses['l2'].append(l2_distance)

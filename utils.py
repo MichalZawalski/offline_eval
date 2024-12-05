@@ -61,7 +61,7 @@ def get_correlation_metrics(plots, scores, score_epochs):
 
         # Compute correlation
         correlation = np.corrcoef(matching_values, scores)[0, 1]
-        correlations[metric]['correlation'] = correlation
+        correlations[metric]['correlation'] = -correlation
 
         def get_mmrv(val, sc):
             def rank_violation(i, j):
@@ -72,7 +72,7 @@ def get_correlation_metrics(plots, scores, score_epochs):
 
             return np.mean([np.max([rank_violation(i, j) for j in range(len(sc)) if j != i]) for i in range(len(sc))])
 
-        correlations[metric]['MMRV'] = get_mmrv(matching_values, scores)
+        # correlations[metric]['MMRV'] = get_mmrv(matching_values, scores)
         correlations[metric]['negative MMRV'] = get_mmrv(-matching_values, scores)
 
     return correlations
