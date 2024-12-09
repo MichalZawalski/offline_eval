@@ -15,7 +15,7 @@ def get_closest_losses(output_dir, start_epoch, end_epoch, step_size=1):
     closest_states = None
 
     for epoch in range(start_epoch, end_epoch + 1, step_size):
-        if epoch % 10 == 0:
+        if epoch % 50 == 0:
             print(f"Processing epoch {epoch}")
 
         file_path = os.path.join(output_dir, f'validation_data_epoch_{epoch}.pkl')
@@ -59,7 +59,8 @@ def get_closest_losses(output_dir, start_epoch, end_epoch, step_size=1):
             scores.append(data['test/mean_score'])
             score_epochs.append(epoch)
 
-    make_single_plots(res, 'Closest losses', metaname)
+    smooth_window = 5
+    make_single_plots(res, 'Closest losses', metaname, smooth_window)
     # if scores:
     #     make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname)
 

@@ -17,7 +17,7 @@ def get_min_losses(output_dir, start_epoch, end_epoch, step_size=1):
     score_epochs = []
 
     for epoch in range(start_epoch, end_epoch + 1, step_size):
-        if epoch % 10 == 0:
+        if epoch % 50 == 0:
             print(f"Processing epoch {epoch}")
 
         file_path = os.path.join(output_dir, f'validation_data_epoch_{epoch}.pkl')
@@ -53,5 +53,6 @@ def get_min_losses(output_dir, start_epoch, end_epoch, step_size=1):
             scores.append(data['test/mean_score'])
             score_epochs.append(epoch)
 
-    make_single_plots(res, 'Minimal losses', metaname)
+    smooth_window = 5
+    make_single_plots(res, 'Minimal losses', metaname, smooth_window)
     print(get_correlation_metrics(res, scores, score_epochs))

@@ -29,7 +29,7 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
     score_epochs = []
 
     for epoch in range(start_epoch, end_epoch + 1, step_size):
-        if epoch % 10 == 0:
+        if epoch % 50 == 0:
             print(f"Processing epoch {epoch}")
 
         file_path = os.path.join(output_dir, f'validation_data_epoch_{epoch}.pkl')
@@ -52,7 +52,6 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
             gt_action = prediction_results[batch_number]['gt_action'][index_in_batch]
             pred_action = prediction_results[batch_number]['pred_action'][index_in_batch]
 
-            losses['plain_validation'].append(np.mean(per_sample_losses[batch_number][index_in_batch]))
             losses['l1'].append(np.linalg.norm(gt_action - pred_action, ord=1))
             l2_distance = np.linalg.norm(gt_action - pred_action, ord=2)
             losses['l2'].append(l2_distance)
@@ -74,8 +73,9 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
             scores.append(data['test/mean_score'])
             score_epochs.append(epoch)
 
-    make_single_plots(res, 'Alternative losses', metaname)
+    smooth_window = 5
+    make_single_plots(res, 'Alternative losses', metaname, smooth_window)
     if scores:
-        make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname)
+        make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname, smooth_window)
 
     print(get_correlation_metrics(res, scores, score_epochs))

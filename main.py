@@ -15,13 +15,15 @@ def main():
     # output_dir, n_epochs = "/home/michal/code/offline_validation/DP_validation/data/outputs/2024.12.03/20.27.06_train_diffusion_unet_lowdim_tool_hang_lowdim", 1000
     output_dir, n_epochs = "/home/michal/code/offline_validation/DP_validation/data/outputs/2024.12.02/09.56.38_train_diffusion_unet_lowdim_blockpush_lowdim_seed_abs", 3500
 
+    precision = 2
+
     print("Processing", output_dir)
     print(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
 
-    # get_oracle_losses(output_dir, start_epoch=0, end_epoch=n_epochs, oracle_epoch=30, step_size=10)
-    get_min_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=10)
-    get_alternative_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=10)
-    get_closest_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=10)
+    # get_oracle_losses(output_dir, start_epoch=0, end_epoch=n_epochs, oracle_epoch=30, step_size=precision)
+    get_min_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=precision)
+    get_alternative_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=precision)
+    get_closest_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=precision)
 
 
 if __name__ == '__main__':
