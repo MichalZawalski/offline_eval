@@ -1,3 +1,5 @@
+import glob
+from collections import defaultdict
 from datetime import datetime
 
 import torch
@@ -5,6 +7,7 @@ import os
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+import zarr
 
 from episodes_length import EPISODES_LENGTH_DATA
 
@@ -33,16 +36,25 @@ def make_single_plots(plot_data, name, metaname, smooth_window=1):
 
 
 def make_combined_plot(plot_data, name, metaname, smooth_window=1):
-    plt.figure()
+    fig, ax1 = plt.subplots()
+
     for k, values in plot_data.items():
         if k == 'epoch':
             continue
-        plt.plot(smooth_data(plot_data['epoch'], smooth_window),
-                 smooth_data(values, smooth_window), label=k)
+        smooth_values = smooth_data(values, smooth_window)
+        ax1.plot(smooth_data(plot_data['epoch'], smooth_window),
+                 smooth_values, label=k)
+
+        if np.all(smooth_values > 0):
+            ax2 = ax1.twinx()
+            ax2.plot(smooth_data(plot_data['epoch'], smooth_window),
+                     np.log(smooth_values), label=f'log {k}', color='r')
+
+
     plt.xlabel('Epoch')
     plt.title(name)
     # plt.yscale('log')
-    plt.legend()
+    # plt.legend()
     plt.text(0.01, -0.08, metaname, fontsize=8, ha='left', va='center', transform=plt.gca().transAxes)
     plt.savefig(f'figures/{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}_{name.lower().replace(" ", "_")}.png')
     plt.close()
@@ -99,14 +111,15 @@ def get_correlation_metrics(plots, scores, score_epochs):
             prefix = 'smooth ' if smooth_window > 1 else ''
             smooth_matching_values = smooth_data(matching_values, smooth_window)
             smooth_scores = smooth_data(scores, smooth_window)
+            skip_frames = 0
 
             # Compute correlation
-            correlation = np.corrcoef(smooth_matching_values, smooth_scores)[0, 1]
+            correlation = np.corrcoef(smooth_matching_values[skip_frames:], smooth_scores[skip_frames:])[0, 1]
             correlations[metric][prefix + 'correlation'] = -correlation
 
-            correlations[metric][prefix + 'negative MMRV'] = get_mmrv(-smooth_matching_values, smooth_scores)
+            correlations[metric][prefix + 'negative MMRV'] = get_mmrv(-smooth_matching_values[skip_frames:], smooth_scores[skip_frames:])
 
-            correlations[metric][prefix + 'adv over final'] = get_adv_over_final(-smooth_matching_values, smooth_scores)
+            correlations[metric][prefix + 'adv over final'] = get_adv_over_final(-smooth_matching_values[skip_frames:], smooth_scores[skip_frames:])
 
     return correlations
 
@@ -180,6 +193,87 @@ def prepare_table(data, n_datasets=4):
         print(f"{metric}\t\t{values['correlation']}\t{values['negative MMRV']}")
         for _ in range(n_datasets - 1):
             print()
+
+
+def get_action_fields(zarr_group, field_prefix):
+    action_fields = []
+
+    for field in zarr_group.array_keys():
+        action_fields.append(f'{field_prefix}/{field}')
+
+    for field in zarr_group.group_keys():
+        action_fields += get_action_fields(zarr_group[field], f'{field_prefix}/{field}')
+
+    return action_fields
+
+
+def get_state_from_group(zarr_group):
+    state = []
+
+    for field in zarr_group.array_keys():
+        state.append(zarr_group[field])
+
+    for field in zarr_group.group_keys():
+        state += get_state_from_group(zarr_group[field])
+
+    return state
+
+
+def convert_zip_to_dict(path):
+    with zarr.ZipStore(path, mode="r") as store:
+        zarr_group = zarr.group(store)
+
+        action_fields = get_action_fields(zarr_group['ground_truth/action'], '')
+
+        val_prediction_results = {
+            'multiple_preds': None,
+            'gt_action': np.concatenate([zarr_group[f'ground_truth/action{field}'] for field in action_fields], axis=-1),
+            'pred_action': np.squeeze(np.concatenate([zarr_group[f'model_generated/action{field}'] for field in action_fields], axis=-1), axis=1),
+            'obs': np.concatenate(get_state_from_group(zarr_group['ground_truth/state']), axis=-1)
+        }
+
+        val_data = {
+            'action': val_prediction_results['gt_action'],
+            'obs': val_prediction_results['obs'],
+        }
+
+        data_to_save = {
+            'val_data': val_data,
+            'per_sample_losses': None,
+            'val_prediction_results': val_prediction_results,
+        }
+
+    return data_to_save
+
+
+def pi_experiments():
+    return ['4l71mq2q', '9ihrtr3m', 'dtt8wm9u', 'kh1vqrxr', 'ldaug7ak', 'pr2xn6r0', 'wx0gvvmm', 'z0hd44iz', 'zblar8fp']
+
+
+def get_experiment_data(path, epoch):
+    if '/pi_datasets/' not in path:
+        file_path = os.path.join(path, f'validation_data_epoch_{epoch}.pkl')
+        data = load_pkl_file(file_path)
+        batch_size = 256
+
+        return data, batch_size
+
+    data = defaultdict(list)
+
+    files = glob.glob(path + f'_{epoch}_*.zarr.zip')
+    if len(files) == 0:
+        return None, None
+
+    for i in range(len(files)):
+        shard = glob.glob(path + f'_{epoch}_*_{i}.zarr.zip')
+        assert len(shard) == 1
+        assert shard[0] in files
+
+        dict_shard = convert_zip_to_dict(shard[0])
+        for k in dict_shard.keys():
+            data[k].append(dict_shard[k])
+
+    return data, data['val_prediction_results'][0]['gt_action'].shape[0]
 
 
 if __name__ == '__main__':

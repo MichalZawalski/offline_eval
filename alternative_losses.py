@@ -8,7 +8,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import load_pkl_file, make_single_plots, get_correlation_metrics
+from utils import load_pkl_file, make_single_plots, get_correlation_metrics, convert_zip_to_dict, get_experiment_data
 
 
 def huber_loss(x, delta=1):
@@ -22,7 +22,7 @@ def smooth_probability_loss(x, scale=math.pi):
     return 1 - 1 / ((scale * x)**2 + 1)
 
 
-def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
+def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1, do_plot=True):
     metaname = output_dir.split('/')[-1]
     res = defaultdict(list)
     scores = []
@@ -32,9 +32,9 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
         if epoch % 50 == 0:
             print(f"Processing epoch {epoch}")
 
-        file_path = os.path.join(output_dir, f'validation_data_epoch_{epoch}.pkl')
-
-        data = load_pkl_file(file_path)
+        data, batch_size = get_experiment_data(output_dir, epoch)
+        if data is None:
+            continue
 
         val_data = data['val_data']
         prediction_results = data['val_prediction_results']
@@ -43,8 +43,8 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
         losses = defaultdict(list)
 
         for index in range(int(1e5)):
-            batch_number = index // 256
-            index_in_batch = index % 256
+            batch_number = index // batch_size
+            index_in_batch = index % batch_size
 
             if batch_number >= len(val_data) or index_in_batch >= len(val_data[batch_number]['action']):
                 break
@@ -61,8 +61,8 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
             losses['huber'].append(huber_loss(l2_distance))
             losses['smooth_prob_pi'].append(smooth_probability_loss(l2_distance, scale=math.pi))
             losses['smooth_prob_5'].append(smooth_probability_loss(l2_distance, scale=5))
-            losses['per_sample_loss'].append(np.sum(np.abs(data['per_sample_losses'][batch_number][index_in_batch])))
 
+            # losses['per_sample_loss'].append(np.sum(np.abs(data['per_sample_losses'][batch_number][index_in_batch])))
             # losses['torch_mse'].append(torch.nn.functional.mse_loss(torch.tensor(pred_action), torch.tensor(gt_action)).item())
 
         res['epoch'].append(epoch)
@@ -73,9 +73,12 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1):
             scores.append(data['test/mean_score'])
             score_epochs.append(epoch)
 
-    smooth_window = 5
-    make_single_plots(res, 'Alternative losses', metaname, smooth_window)
-    if scores:
-        make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname, smooth_window)
+    if do_plot:
+        smooth_window = 5
+        make_single_plots(res, 'Alternative losses', metaname, smooth_window)
+        if scores:
+            make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname, smooth_window)
 
-    print(get_correlation_metrics(res, scores, score_epochs))
+        print(get_correlation_metrics(res, scores, score_epochs))
+
+    return res, scores, score_epochs
