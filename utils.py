@@ -124,6 +124,48 @@ def get_correlation_metrics(plots, scores, score_epochs):
     return correlations
 
 
+def get_cross_run_correlations(metrics, scores, score_epochs):
+    epoch_mappings = {}
+
+    for k in metrics.keys():
+        epoch_mappings[k] = {epoch: i for i, epoch in enumerate(metrics[k]['epoch'])}
+
+    sample_run = list(metrics.keys())[0]
+
+    all_correlation_metrics = dict()
+
+    for metric_name in metrics[sample_run]:
+        if metric_name == 'epoch':
+            continue
+
+        correlations = defaultdict(list)
+
+        for i, epoch in enumerate(score_epochs):
+            score_values = []
+            metric_values = []
+
+            for run in metrics:
+                if epoch not in epoch_mappings[run]:
+                    continue
+
+                score_values.append(scores[run][i])
+                metric_values.append(metrics[run][metric_name][epoch_mappings[run][epoch]])
+
+            assert len(score_values) == len(metrics)
+            if len(score_values) == 0:
+                continue
+
+            correlations['correlation'].append(np.corrcoef(score_values, metric_values)[0, 1])
+            correlations['negative MMRV'].append(get_mmrv(metric_values, score_values))
+
+        all_correlation_metrics[metric_name] = correlations
+
+    return all_correlation_metrics
+
+
+
+
+
 def find_closest_states(val_data, n_closest=10):
     states = []
 
