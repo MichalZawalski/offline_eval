@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from utils import load_pkl_file, make_single_plots, get_correlation_metrics
 
 
-def get_min_losses(output_dir, start_epoch, end_epoch, step_size=1):
+def get_min_losses(output_dir, start_epoch, end_epoch, step_size=1, do_plot=True):
     metaname = output_dir.split('/')[-1]
     res = defaultdict(list)
     scores = []
@@ -53,6 +53,10 @@ def get_min_losses(output_dir, start_epoch, end_epoch, step_size=1):
             scores.append(data['test/mean_score'])
             score_epochs.append(epoch)
 
-    smooth_window = 5
-    make_single_plots(res, 'Minimal losses', metaname, smooth_window)
-    print(get_correlation_metrics(res, scores, score_epochs))
+    if do_plot:
+        smooth_window = 5
+        make_single_plots(res, 'Minimal losses', metaname, smooth_window)
+
+        print(get_correlation_metrics(res, scores, score_epochs))
+
+    return res, scores, score_epochs

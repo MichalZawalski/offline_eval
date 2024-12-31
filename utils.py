@@ -35,7 +35,7 @@ def make_single_plots(plot_data, name, metaname, smooth_window=1):
                            f'{name}: {k}', metaname, smooth_window)
 
 
-def make_combined_plot(plot_data, name, metaname, smooth_window=1):
+def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=False, do_plot_log=True):
     fig, ax1 = plt.subplots()
 
     for k, values in plot_data.items():
@@ -45,7 +45,7 @@ def make_combined_plot(plot_data, name, metaname, smooth_window=1):
         ax1.plot(smooth_data(plot_data['epoch'], smooth_window),
                  smooth_values, label=k)
 
-        if np.all(smooth_values > 0):
+        if do_plot_log and np.all(smooth_values > 0):
             ax2 = ax1.twinx()
             ax2.plot(smooth_data(plot_data['epoch'], smooth_window),
                      np.log(smooth_values), label=f'log {k}', color='r')
@@ -54,7 +54,8 @@ def make_combined_plot(plot_data, name, metaname, smooth_window=1):
     plt.xlabel('Epoch')
     plt.title(name)
     # plt.yscale('log')
-    # plt.legend()
+    if make_legend:
+        plt.legend()
     plt.text(0.01, -0.08, metaname, fontsize=8, ha='left', va='center', transform=plt.gca().transAxes)
     plt.savefig(f'figures/{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}_{name.lower().replace(" ", "_")}.png')
     plt.close()
@@ -68,6 +69,14 @@ def get_mmrv(val, sc):
             return 0
 
     return np.mean([np.max([rank_violation(i, j) for j in range(len(sc)) if j != i]) for i in range(len(sc))])
+
+
+def get_n_inversions(val, sc):
+    return np.sum([val[i] > val[j] and sc[i] < sc[j] for i in range(len(sc)) for j in range(i + 1, len(sc))])
+
+
+def shake(data, scale=0.05):
+    return [x + np.random.normal(0, scale) for x in data]
 
 
 def get_adv_over_final(val, sc):
@@ -156,14 +165,17 @@ def get_cross_run_correlations(metrics, scores, score_epochs):
                 continue
 
             correlations['correlation'].append(np.corrcoef(score_values, metric_values)[0, 1])
-            correlations['negative MMRV'].append(get_mmrv(metric_values, score_values))
+            correlations['MMRV'].append(get_mmrv(np.array(metric_values), score_values))
+            correlations['negative MMRV'].append(get_mmrv(-np.array(metric_values), score_values))
+            correlations['inversions'].append(get_n_inversions(metric_values, score_values))
+
+            # noising
+            correlations['inversions'][-1] += np.random.uniform(-0.05, 0.05)
+            correlations['negative MMRV'][-1] += np.random.uniform(-0.02, 0.02)
 
         all_correlation_metrics[metric_name] = correlations
 
     return all_correlation_metrics
-
-
-
 
 
 def find_closest_states(val_data, n_closest=10):

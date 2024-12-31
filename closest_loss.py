@@ -5,7 +5,7 @@ import numpy as np
 from utils import load_pkl_file, make_single_plots, get_correlation_metrics, find_closest_states, simulate_rollout
 
 
-def get_closest_losses(output_dir, start_epoch, end_epoch, step_size=1):
+def get_closest_losses(output_dir, start_epoch, end_epoch, step_size=1, do_plot=True):
     metaname = output_dir.split('/')[-1]
     taskname = output_dir.split('_train_')[-1]
     res = defaultdict(list)
@@ -59,9 +59,12 @@ def get_closest_losses(output_dir, start_epoch, end_epoch, step_size=1):
             scores.append(data['test/mean_score'])
             score_epochs.append(epoch)
 
-    smooth_window = 5
-    make_single_plots(res, 'Closest losses', metaname, smooth_window)
-    # if scores:
-    #     make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname)
+    if do_plot:
+        smooth_window = 5
+        make_single_plots(res, 'Closest losses', metaname, smooth_window)
+        # if scores:
+        #     make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname)
 
-    print(get_correlation_metrics(res, scores, score_epochs))
+        print(get_correlation_metrics(res, scores, score_epochs))
+
+    return res, scores, score_epochs
