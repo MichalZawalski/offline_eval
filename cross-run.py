@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import numpy as np
+
 from alternative_losses import get_alternative_losses
 from closest_loss import get_closest_losses
 from min_losses import get_min_losses
@@ -37,6 +39,14 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1):
         plot['epoch'] = score_epochs
         make_combined_plot(plot, corr_name, 'cross-run', make_legend=True, do_plot_log=False)
 
+    # for metric in ['top_10%_losses', 'l2_sq', 'smooth_prob_pi']:
+    #     make_combined_plot({'epoch': score_epochs} | {metaname: np.log(all_losses[metaname][metric]) for metaname in all_losses},
+    #                        metric, 'cross-run', make_legend=True, do_plot_log=False)
+    #
+    # make_combined_plot(
+    #     {'epoch': score_epochs} | {metaname: all_scores[metaname] for metaname in all_losses},
+    #     'scores', 'cross-run', make_legend=True, do_plot_log=False)
+
 
 if __name__ == '__main__':
     output_dirs = [
@@ -46,4 +56,4 @@ if __name__ == '__main__':
         "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.49.23_train_diffusion_unet_lowdim_tool_hang_lowdim",
         "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.55.29_train_diffusion_unet_lowdim_tool_hang_lowdim",
     ]
-    compare_runs(output_dirs, 0, 4000, 200)
+    compare_runs(output_dirs, 0, 4500, 200)

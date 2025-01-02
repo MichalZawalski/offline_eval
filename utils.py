@@ -72,7 +72,7 @@ def get_mmrv(val, sc):
 
 
 def get_n_inversions(val, sc):
-    return np.sum([val[i] > val[j] and sc[i] < sc[j] for i in range(len(sc)) for j in range(i + 1, len(sc))])
+    return np.sum([(val[i] < val[j]) != (sc[i] < sc[j]) for i in range(len(sc)) for j in range(i + 1, len(sc))])
 
 
 def shake(data, scale=0.05):
@@ -168,10 +168,13 @@ def get_cross_run_correlations(metrics, scores, score_epochs):
             correlations['MMRV'].append(get_mmrv(np.array(metric_values), score_values))
             correlations['negative MMRV'].append(get_mmrv(-np.array(metric_values), score_values))
             correlations['inversions'].append(get_n_inversions(metric_values, score_values))
+            correlations['neg inversions'].append(get_n_inversions(-np.array(metric_values), score_values))
 
             # noising
-            correlations['inversions'][-1] += np.random.uniform(-0.05, 0.05)
-            correlations['negative MMRV'][-1] += np.random.uniform(-0.02, 0.02)
+            correlations['inversions'][-1] += np.random.uniform(0, 0.2)
+            correlations['neg inversions'][-1] += np.random.uniform(0, 0.2)
+            correlations['MMRV'][-1] += np.random.uniform(0, 0.02)
+            correlations['negative MMRV'][-1] += np.random.uniform(0, 0.02)
 
         all_correlation_metrics[metric_name] = correlations
 
