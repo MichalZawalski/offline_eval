@@ -35,8 +35,11 @@ def make_single_plots(plot_data, name, metaname, smooth_window=1):
                            f'{name}: {k}', metaname, smooth_window)
 
 
-def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=False, do_plot_log=True):
-    fig, ax1 = plt.subplots()
+def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=False, do_plot_log=True, figsize=None):
+    if figsize is not None:
+        fig, ax1 = plt.subplots(figsize=figsize)
+    else:
+        fig, ax1 = plt.subplots()
 
     for k, values in plot_data.items():
         if k == 'epoch':

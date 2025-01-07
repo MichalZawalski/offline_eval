@@ -8,7 +8,8 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import load_pkl_file, make_single_plots, get_correlation_metrics, convert_zip_to_dict, get_experiment_data
+from utils import load_pkl_file, make_single_plots, get_correlation_metrics, convert_zip_to_dict, get_experiment_data, \
+    make_combined_plot
 
 
 def huber_loss(x, delta=1):
@@ -22,11 +23,13 @@ def smooth_probability_loss(x, scale=math.pi):
     return 1 - 1 / ((scale * x)**2 + 1)
 
 
-def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1, do_plot=True):
+def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1, do_plot=True, order_per_datapoint=False):
     metaname = output_dir.split('/')[-1]
     res = defaultdict(list)
     scores = []
     score_epochs = []
+
+    per_datapoint = []
 
     for epoch in range(start_epoch, end_epoch + 1, step_size):
         if epoch % 50 == 0:
@@ -65,6 +68,12 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1, do_p
             # losses['per_sample_loss'].append(np.sum(np.abs(data['per_sample_losses'][batch_number][index_in_batch])))
             # losses['torch_mse'].append(torch.nn.functional.mse_loss(torch.tensor(pred_action), torch.tensor(gt_action)).item())
 
+            if index >= len(per_datapoint):
+                per_datapoint.append(defaultdict(list))
+
+            for k, v in losses.items():
+                per_datapoint[index][k].append(v[-1])
+
         res['epoch'].append(epoch)
         for k, v in losses.items():
             res[k].append(np.mean(v))
@@ -80,5 +89,23 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1, do_p
             make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname, smooth_window)
 
         print(get_correlation_metrics(res, scores, score_epochs))
+
+    if order_per_datapoint:
+        for ordering_metric in ['l1', 'l2', 'l2_sq', 'max', 'geom', 'huber', 'smooth_prob_pi', 'smooth_prob_5']:
+            order = []
+            for i in range(len(per_datapoint)):
+                # get the correlation of l2 loss with scores
+                correlation = np.corrcoef(per_datapoint[i][ordering_metric], scores)[0, 1]
+                order.append((correlation, i))
+
+            order = [i for _, i in sorted(order)]
+
+            plots = dict()
+            plots['epoch'] = list(range(len(per_datapoint)))
+
+            for metric in per_datapoint[0]:
+                plots[metric] = [np.corrcoef(per_datapoint[i][metric], scores)[0, 1] for i in order]
+
+            make_combined_plot(plots, f'Sorted by {ordering_metric}', metaname, make_legend=True, do_plot_log=False, smooth_window=15, figsize=(16, 12))
 
     return res, scores, score_epochs
