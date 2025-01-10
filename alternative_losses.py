@@ -25,7 +25,7 @@ def smooth_probability_loss(x, scale=math.pi):
 
 
 def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
-                           do_plot=True, order_per_datapoint=False, plot_samples=False):
+                           do_plot=True, order_per_datapoint=False, plot_samples=False, plot_cum_minimals=False):
     metaname = output_dir.split('/')[-1]
     res = defaultdict(list)
     scores = []
@@ -63,7 +63,8 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
             losses['l2_sq'].append(l2_distance ** 2)
             losses['max'].append(np.max(np.abs(gt_action - pred_action)))
             losses['geom'].append(np.mean(np.log(np.abs(gt_action - pred_action) + 1e-6)))
-            losses['huber'].append(huber_loss(l2_distance))
+            # losses['huber'].append(huber_loss(l2_distance))
+            losses['huber'].append(np.nan)  # Indistinguishable from l2_sq
             losses['smooth_prob_pi'].append(smooth_probability_loss(l2_distance, scale=math.pi))
             losses['smooth_prob_5'].append(smooth_probability_loss(l2_distance, scale=5))
 
@@ -99,6 +100,7 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
                 # get the correlation of l2 loss with scores
                 correlation = np.corrcoef(-np.array(per_datapoint[i][ordering_metric]), scores)[0, 1]
                 # correlation = spearmanr(-np.array(per_datapoint[i][ordering_metric]), scores)[0]
+                # correlation = np.mean(per_datapoint[i][ordering_metric][-10:])
                 order.append((correlation, i))
 
             order = [i for _, i in sorted(order)]
@@ -109,8 +111,32 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
             for metric in per_datapoint[0]:
                 plots[metric] = [np.corrcoef(-np.array(per_datapoint[i][metric]), scores)[0, 1] for i in order]
                 # plots[metric] = [spearmanr(-np.array(per_datapoint[i][metric]), scores)[0] for i in order]
+                # plots[metric] = [np.mean(per_datapoint[i][metric][-10:]) for i in order]
 
-            make_combined_plot(plots, f'Sorted by {ordering_metric}', metaname, make_legend=True, do_plot_log=False, smooth_window=15, figsize=(16, 12))
+            make_combined_plot(plots, f'Sorted by {ordering_metric}', f'{metaname}, ordered by last values',
+                               make_legend=True, do_plot_log=False, smooth_window=15, figsize=(16, 12))
+
+    if plot_cum_minimals:
+        for metric in ['l1', 'l2', 'l2_sq', 'max', 'geom', 'smooth_prob_pi', 'smooth_prob_5']:
+            order = []
+            for i in range(len(per_datapoint)):
+                final_value = np.mean(per_datapoint[i][metric][-10:])
+                order.append((final_value, i))
+
+            order = [i for _, i in sorted(order)]
+
+            plots = dict()
+            plots['epoch'] = list(range(len(per_datapoint)))
+            plot_name = f'{metric} cumsum correlation'
+            plots[plot_name] = []
+            cumsum = np.zeros_like(per_datapoint[0][metric])
+
+            for i, data in enumerate(per_datapoint):
+                cumsum += np.array(data[metric])
+                plots[plot_name].append(np.corrcoef(-cumsum, scores)[0, 1])
+
+            make_combined_plot(plots, f'Cumulative {metric}', f'{metaname}, ordered by last values',
+                               make_legend=True, do_plot_log=False, smooth_window=1)
 
     if plot_samples:
         # plot 10 samples

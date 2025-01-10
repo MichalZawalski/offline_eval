@@ -36,7 +36,7 @@ def make_single_plots(plot_data, name, metaname, smooth_window=1):
                            f'{name}: {k}', metaname, smooth_window)
 
 
-def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=False, do_plot_log=True, figsize=None):
+def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=False, do_plot_log=True, figsize=None, try_log_transform=False):
     if figsize is not None:
         fig, ax1 = plt.subplots(figsize=figsize)
     else:
@@ -45,9 +45,16 @@ def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=F
     for k, values in plot_data.items():
         if k == 'epoch':
             continue
+
         smooth_values = smooth_data(values, smooth_window)
-        ax1.plot(smooth_data(plot_data['epoch'], smooth_window),
-                 smooth_values, label=k)
+        if try_log_transform and np.all(smooth_values > 0):
+            smooth_values = np.log(smooth_values)
+
+        if k == 'huber':
+            # skip the plot, but keep the legend
+            ax1.plot([], [], label=k)
+        else:
+            ax1.plot(smooth_data(plot_data['epoch'], smooth_window), smooth_values, label=k)
 
         if do_plot_log and np.all(smooth_values > 0):
             ax2 = ax1.twinx()
@@ -168,7 +175,7 @@ def get_cross_run_correlations(metrics, scores, score_epochs):
             if len(score_values) == 0:
                 continue
 
-            correlations['correlation'].append(np.corrcoef(score_values, metric_values)[0, 1])
+            correlations['correlation'].append(np.corrcoef(-np.array(metric_values), score_values)[0, 1])
             correlations['MMRV'].append(get_mmrv(np.array(metric_values), score_values))
             correlations['negative MMRV'].append(get_mmrv(-np.array(metric_values), score_values))
             correlations['inversions'].append(get_n_inversions(metric_values, score_values))
