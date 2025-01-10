@@ -146,4 +146,4 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
             plots[f'{i}'] = [per_datapoint[i]['l2'][j] for j in plots['epoch']]
         make_combined_plot(plots, f'10 first samples', metaname, make_legend=True, do_plot_log=False, smooth_window=5)
 
-    return res, scores, score_epochs
+    return res, scores, score_epochs, per_datapoint
