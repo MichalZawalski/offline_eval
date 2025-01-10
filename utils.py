@@ -8,6 +8,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import zarr
+from scipy.stats import spearmanr
 
 from episodes_length import EPISODES_LENGTH_DATA
 
@@ -172,6 +173,7 @@ def get_cross_run_correlations(metrics, scores, score_epochs):
             correlations['negative MMRV'].append(get_mmrv(-np.array(metric_values), score_values))
             correlations['inversions'].append(get_n_inversions(metric_values, score_values))
             correlations['neg inversions'].append(get_n_inversions(-np.array(metric_values), score_values))
+            correlations['Spearman'].append(spearmanr(-np.array(metric_values), score_values)[0])
 
             # noising
             correlations['inversions'][-1] += np.random.uniform(0, 0.2)

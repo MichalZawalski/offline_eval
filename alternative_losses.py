@@ -7,6 +7,7 @@ import os
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import spearmanr
 
 from utils import load_pkl_file, make_single_plots, get_correlation_metrics, convert_zip_to_dict, get_experiment_data, \
     make_combined_plot
@@ -23,7 +24,8 @@ def smooth_probability_loss(x, scale=math.pi):
     return 1 - 1 / ((scale * x)**2 + 1)
 
 
-def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1, do_plot=True, order_per_datapoint=False):
+def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
+                           do_plot=True, order_per_datapoint=False, plot_samples=False):
     metaname = output_dir.split('/')[-1]
     res = defaultdict(list)
     scores = []
@@ -91,11 +93,12 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1, do_p
         print(get_correlation_metrics(res, scores, score_epochs))
 
     if order_per_datapoint:
-        for ordering_metric in ['l1', 'l2', 'l2_sq', 'max', 'geom', 'huber', 'smooth_prob_pi', 'smooth_prob_5']:
+        for ordering_metric in ['l1', 'l2', 'l2_sq', 'max', 'geom', 'smooth_prob_pi', 'smooth_prob_5']:
             order = []
             for i in range(len(per_datapoint)):
                 # get the correlation of l2 loss with scores
-                correlation = np.corrcoef(per_datapoint[i][ordering_metric], scores)[0, 1]
+                correlation = np.corrcoef(-np.array(per_datapoint[i][ordering_metric]), scores)[0, 1]
+                # correlation = spearmanr(-np.array(per_datapoint[i][ordering_metric]), scores)[0]
                 order.append((correlation, i))
 
             order = [i for _, i in sorted(order)]
@@ -104,8 +107,17 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1, do_p
             plots['epoch'] = list(range(len(per_datapoint)))
 
             for metric in per_datapoint[0]:
-                plots[metric] = [np.corrcoef(per_datapoint[i][metric], scores)[0, 1] for i in order]
+                plots[metric] = [np.corrcoef(-np.array(per_datapoint[i][metric]), scores)[0, 1] for i in order]
+                # plots[metric] = [spearmanr(-np.array(per_datapoint[i][metric]), scores)[0] for i in order]
 
             make_combined_plot(plots, f'Sorted by {ordering_metric}', metaname, make_legend=True, do_plot_log=False, smooth_window=15, figsize=(16, 12))
+
+    if plot_samples:
+        # plot 10 samples
+        plots = dict()
+        plots['epoch'] = list(range(len(per_datapoint[0]['l2'])))
+        for i in range(0, 100, 10):
+            plots[f'{i}'] = [per_datapoint[i]['l2'][j] for j in plots['epoch']]
+        make_combined_plot(plots, f'10 first samples', metaname, make_legend=True, do_plot_log=False, smooth_window=5)
 
     return res, scores, score_epochs
