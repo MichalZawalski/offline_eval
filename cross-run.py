@@ -49,7 +49,7 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
     #     'scores', 'cross-run', make_legend=True, do_plot_log=False)
 
 
-def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1):
+def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1, use_best=True):
     all_per_datapoints = dict()
 
     for output_dir in output_dirs:
@@ -71,7 +71,8 @@ def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1):
             places = np.zeros(len(per_datapoint))
 
             for i in range(len(per_datapoint)):
-                final_value = np.mean(per_datapoint[i][metric][-10:])
+                scale = 1 if use_best else -1
+                final_value = np.mean(per_datapoint[i][metric][-10:]) * scale
                 order.append((final_value, i))
 
             order = [i for _, i in sorted(order)]
@@ -99,7 +100,7 @@ def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1):
                 # plots[f'int. of {j+1}'].append(running_sum[j])
                 plots[f'int. of {j+1}'].append(running_sum[j] / (i + 1))
 
-        make_combined_plot(plots, f'{metric} best subsets intersections', metaname,
+        make_combined_plot(plots, f'{metric} {"best" if use_best else "worst"} subsets intersections', metaname,
                             make_legend=True, do_plot_log=False, smooth_window=1)
         if len(plots) == 2:
             combined_plot['epoch'] = plots['epoch']
@@ -108,16 +109,24 @@ def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1):
                     combined_plot[metric] = v
 
     if len(combined_plot) > 0:
-        make_combined_plot(combined_plot, 'best subsets intersections', 'cross-run', make_legend=True, do_plot_log=False)
+        make_combined_plot(combined_plot, f'{"best" if use_best else "worst"} subsets intersections',
+                           'cross-run', make_legend=True, do_plot_log=False)
 
 
 if __name__ == '__main__':
-    output_dirs = [
+    output_dirs = [  # varying hyperparameters
         "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.45.25_train_diffusion_unet_lowdim_tool_hang_lowdim",
         "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.14_train_diffusion_unet_lowdim_tool_hang_lowdim",
         "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.43_train_diffusion_unet_lowdim_tool_hang_lowdim",
         "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.49.23_train_diffusion_unet_lowdim_tool_hang_lowdim",
         # "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.55.29_train_diffusion_unet_lowdim_tool_hang_lowdim",  # has more datapoints
     ]
+    # output_dirs = [  # varying seeds
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.27.47_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.30.51_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.32.50_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.33.07_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.33.40_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    # ]
     # compare_runs(output_dirs, 0, 4500, 200)
-    plot_minimal_sets(output_dirs, 0, 4500, 200)
+    plot_minimal_sets(output_dirs, 0, 4500, 200, use_best=True)

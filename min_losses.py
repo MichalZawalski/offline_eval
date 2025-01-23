@@ -47,6 +47,7 @@ def get_min_losses(output_dir, start_epoch, end_epoch, step_size=1, do_plot=True
         res['epoch'].append(epoch)
         res['loss'].append(np.mean(sorted_losses))
         res['top_10%_losses'].append(np.mean(sorted_losses[:int(len(sorted_losses) * 0.1)]))
+        res['top_50%_losses'].append(np.mean(sorted_losses[:int(len(sorted_losses) * 0.5)]))
         res['top_100_losses'].append(np.mean(sorted_losses[:100]))
 
         if 'test/mean_score' in data:
@@ -59,4 +60,4 @@ def get_min_losses(output_dir, start_epoch, end_epoch, step_size=1, do_plot=True
 
         print(get_correlation_metrics(res, scores, score_epochs))
 
-    return res, scores, score_epochs
+    return res, scores, score_epochs, None

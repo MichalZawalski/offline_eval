@@ -33,6 +33,8 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
 
     per_datapoint = []
 
+    pi_scores = None
+
     for epoch in range(start_epoch, end_epoch + 1, step_size):
         if epoch % 50 == 0:
             print(f"Processing epoch {epoch}")
@@ -84,6 +86,24 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
         if 'test/mean_score' in data:
             scores.append(data['test/mean_score'])
             score_epochs.append(epoch)
+        elif '/pi_datasets/' in output_dir:
+            if pi_scores is None:
+                import csv
+
+                pi_scores = dict()
+
+                with open('pi_results.csv', newline='') as csvfile:
+                    reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+                    for row in reader:
+                        pi_scores[row[0]] = float(row[5].split(' ')[0]) / float(row[5].split(' ')[-1])
+
+            print(pi_scores)
+
+            for k, v in pi_scores.items():
+                print(f'{metaname}_{epoch}_', k, v)
+                if f'{metaname}_{epoch}_' in k:
+                    scores.append(v)
+                    score_epochs.append(epoch)
 
     if do_plot:
         smooth_window = 5
