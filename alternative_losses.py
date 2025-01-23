@@ -25,7 +25,8 @@ def smooth_probability_loss(x, scale=math.pi):
 
 
 def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
-                           do_plot=True, order_per_datapoint=False, plot_samples=False, plot_cum_minimals=False):
+                           do_plot=True, order_per_datapoint=False, plot_samples=False, plot_cum_minimals=False,
+                           use_smoothing=True):
     metaname = output_dir.split('/')[-1]
     res = defaultdict(list)
     scores = []
@@ -97,16 +98,13 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
                     for row in reader:
                         pi_scores[row[0]] = float(row[5].split(' ')[0]) / float(row[5].split(' ')[-1])
 
-            print(pi_scores)
-
             for k, v in pi_scores.items():
-                print(f'{metaname}_{epoch}_', k, v)
                 if f'{metaname}_{epoch}_' in k:
                     scores.append(v)
                     score_epochs.append(epoch)
 
     if do_plot:
-        smooth_window = 5
+        smooth_window = 5 if use_smoothing else 1
         make_single_plots(res, 'Alternative losses', metaname, smooth_window)
         if scores:
             make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname, smooth_window)
@@ -134,7 +132,7 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
                 # plots[metric] = [np.mean(per_datapoint[i][metric][-10:]) for i in order]
 
             make_combined_plot(plots, f'Sorted by {ordering_metric}', f'{metaname}, ordered by last values',
-                               make_legend=True, do_plot_log=False, smooth_window=15, figsize=(16, 12))
+                               make_legend=True, do_plot_log=False, smooth_window=15 if use_smoothing else 1, figsize=(16, 12))
 
     if plot_cum_minimals:
         for metric in ['l1', 'l2', 'l2_sq', 'max', 'geom', 'smooth_prob_pi', 'smooth_prob_5']:
@@ -156,7 +154,7 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
                 plots[plot_name].append(np.corrcoef(-cumsum, scores)[0, 1])
 
             make_combined_plot(plots, f'Cumulative {metric}', f'{metaname}, ordered by last values',
-                               make_legend=True, do_plot_log=False, smooth_window=1)
+                               make_legend=True, do_plot_log=False, smooth_window=5)
 
     if plot_samples:
         # plot 10 samples

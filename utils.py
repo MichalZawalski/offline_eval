@@ -128,7 +128,7 @@ def get_correlation_metrics(plots, scores, score_epochs):
         matching_values = get_matching_values(np.array(values), plot_indices)
 
         for smooth_window in [1, 5]:
-            if len(matching_values) < smooth_window:
+            if len(matching_values) <= smooth_window:
                 continue
 
             prefix = 'smooth ' if smooth_window > 1 else ''
