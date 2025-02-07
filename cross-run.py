@@ -8,7 +8,7 @@ from min_losses import get_min_losses
 from utils import get_cross_run_correlations, make_combined_plot
 
 
-def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_sets=False):
+def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_sets=False, ignore_epochs=False):
     all_losses = dict()
     all_scores = dict()
     all_per_datapoint = dict()
@@ -19,11 +19,17 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
 
         for metric_func in [
             get_alternative_losses,
-            get_min_losses,
+            # get_min_losses,
             # get_closest_losses,
         ]:
 
             res, scores, score_epochs, per_datapoint = metric_func(output_dir, start_epoch, end_epoch, step_size, do_plot=False)
+
+            if ignore_epochs:
+                res = {k: [np.mean(v)] for k, v in res.items() if k != 'epoch'}
+                scores = [np.mean(scores)]
+                score_epochs = [0]
+                res['epoch'] = score_epochs
 
             all_losses[metaname] |= res
             all_scores[metaname] = scores
@@ -38,15 +44,16 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
 
     for corr_name, plot in plots.items():
         plot['epoch'] = score_epochs
-        make_combined_plot(plot, corr_name, 'cross-run', make_legend=True, do_plot_log=False)
+        make_combined_plot(plot, corr_name, 'cross-run', make_legend=True,
+                           do_plot_log=False, mark_points=ignore_epochs)
 
-    # for metric in ['top_10%_losses', 'l2_sq', 'smooth_prob_pi']:
-    #     make_combined_plot({'epoch': score_epochs} | {metaname: np.log(all_losses[metaname][metric]) for metaname in all_losses},
-    #                        metric, 'cross-run', make_legend=True, do_plot_log=False)
-    #
-    # make_combined_plot(
-    #     {'epoch': score_epochs} | {metaname: all_scores[metaname] for metaname in all_losses},
-    #     'scores', 'cross-run', make_legend=True, do_plot_log=False)
+    for metric in ['top_10%_losses', 'l2_sq', 'smooth_prob_pi']:
+        make_combined_plot({'epoch': score_epochs} | {metaname: np.log(all_losses[metaname][metric]) for metaname in all_losses},
+                           metric, 'cross-run', make_legend=True, do_plot_log=False, mark_points=ignore_epochs)
+
+    make_combined_plot(
+        {'epoch': score_epochs} | {metaname: all_scores[metaname] for metaname in all_losses},
+        'scores', 'cross-run', make_legend=True, do_plot_log=False, mark_points=ignore_epochs)
 
 
 def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1, use_best=True):
@@ -114,19 +121,31 @@ def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1, use_best
 
 
 if __name__ == '__main__':
-    output_dirs = [  # varying hyperparameters
-        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.45.25_train_diffusion_unet_lowdim_tool_hang_lowdim",
-        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.14_train_diffusion_unet_lowdim_tool_hang_lowdim",
-        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.43_train_diffusion_unet_lowdim_tool_hang_lowdim",
-        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.49.23_train_diffusion_unet_lowdim_tool_hang_lowdim",
-        # "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.55.29_train_diffusion_unet_lowdim_tool_hang_lowdim",  # has more datapoints
-    ]
-    # output_dirs = [  # varying seeds
+    # output_dirs, n_epochs, step_size, ignore_epochs = [  # varying hyperparameters
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.45.25_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.14_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.43_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.49.23_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     # "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.55.29_train_diffusion_unet_lowdim_tool_hang_lowdim",  # has more datapoints
+    # ], 4500, 200, False
+    # output_dirs, n_epochs, step_size, ignore_epochs = [  # varying seeds
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.27.47_train_diffusion_unet_lowdim_tool_hang_lowdim",
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.30.51_train_diffusion_unet_lowdim_tool_hang_lowdim",
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.32.50_train_diffusion_unet_lowdim_tool_hang_lowdim",
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.33.07_train_diffusion_unet_lowdim_tool_hang_lowdim",
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.33.40_train_diffusion_unet_lowdim_tool_hang_lowdim",
-    # ]
-    # compare_runs(output_dirs, 0, 4500, 200)
-    plot_minimal_sets(output_dirs, 0, 4500, 200, use_best=True)
+    # ], 4500, 200, False
+    output_dirs, n_epochs, step_size, ignore_epochs = [
+        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/pr2xn6r0",
+        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/ldaug7ak",
+        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/wx0gvvmm",
+        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/kh1vqrxr",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/zblar8fp",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/z0hd44iz",
+        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/dtt8wm9u",
+        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/9ihrtr3m",
+        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/4l71mq2q",
+    ], 1000000, 10000, True
+
+    compare_runs(output_dirs, 0, n_epochs, step_size, ignore_epochs=ignore_epochs)
+    # plot_minimal_sets(output_dirs, 0, 4500, 200, use_best=True)

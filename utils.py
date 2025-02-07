@@ -36,7 +36,8 @@ def make_single_plots(plot_data, name, metaname, smooth_window=1):
                            f'{name}: {k}', metaname, smooth_window)
 
 
-def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=False, do_plot_log=True, figsize=None, try_log_transform=False):
+def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=False, do_plot_log=True,
+                       figsize=None, try_log_transform=False, mark_points=False):
     if figsize is not None:
         fig, ax1 = plt.subplots(figsize=figsize)
     else:
@@ -54,7 +55,7 @@ def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=F
             # skip the plot, but keep the legend
             ax1.plot([], [], label=k)
         else:
-            ax1.plot(smooth_data(plot_data['epoch'], smooth_window), smooth_values, label=k)
+            ax1.plot(smooth_data(plot_data['epoch'], smooth_window), smooth_values, label=k, marker='x' if mark_points else None)
 
         if do_plot_log and np.all(smooth_values > 0):
             ax2 = ax1.twinx()
