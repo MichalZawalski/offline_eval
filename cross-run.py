@@ -23,7 +23,9 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
             # get_closest_losses,
         ]:
 
-            res, scores, score_epochs, per_datapoint = metric_func(output_dir, start_epoch, end_epoch, step_size, do_plot=False)
+            res, scores, score_epochs, per_datapoint = metric_func(output_dir, start_epoch, end_epoch, step_size, do_plot=False, trajectory_aggregations=10)
+
+            # res = {k: v for k, v in res.items() if k == 'epoch' or '(max' in k}
 
             if ignore_epochs:
                 res = {k: [np.mean(v)] for k, v in res.items() if k != 'epoch'}
@@ -48,7 +50,7 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
                            do_plot_log=False, mark_points=ignore_epochs)
 
     for metric in ['top_10%_losses', 'l2_sq', 'smooth_prob_pi']:
-        make_combined_plot({'epoch': score_epochs} | {metaname: np.log(all_losses[metaname][metric]) for metaname in all_losses},
+        make_combined_plot({'epoch': score_epochs} | {metaname: np.log(all_losses[metaname][metric]) for metaname in all_losses if metric in all_losses[metaname]},
                            metric, 'cross-run', make_legend=True, do_plot_log=False, mark_points=ignore_epochs)
 
     make_combined_plot(
@@ -121,13 +123,13 @@ def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1, use_best
 
 
 if __name__ == '__main__':
-    # output_dirs, n_epochs, step_size, ignore_epochs = [  # varying hyperparameters
-    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.45.25_train_diffusion_unet_lowdim_tool_hang_lowdim",
-    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.14_train_diffusion_unet_lowdim_tool_hang_lowdim",
-    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.43_train_diffusion_unet_lowdim_tool_hang_lowdim",
-    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.49.23_train_diffusion_unet_lowdim_tool_hang_lowdim",
-    #     # "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.55.29_train_diffusion_unet_lowdim_tool_hang_lowdim",  # has more datapoints
-    # ], 4500, 200, False
+    output_dirs, n_epochs, step_size, ignore_epochs = [  # varying hyperparameters
+        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.45.25_train_diffusion_unet_lowdim_tool_hang_lowdim",
+        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.14_train_diffusion_unet_lowdim_tool_hang_lowdim",
+        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.43_train_diffusion_unet_lowdim_tool_hang_lowdim",
+        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.49.23_train_diffusion_unet_lowdim_tool_hang_lowdim",
+        # "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.55.29_train_diffusion_unet_lowdim_tool_hang_lowdim",  # has more datapoints
+    ], 4500, 200, False
     # output_dirs, n_epochs, step_size, ignore_epochs = [  # varying seeds
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.27.47_train_diffusion_unet_lowdim_tool_hang_lowdim",
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.30.51_train_diffusion_unet_lowdim_tool_hang_lowdim",
@@ -135,17 +137,17 @@ if __name__ == '__main__':
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.33.07_train_diffusion_unet_lowdim_tool_hang_lowdim",
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.33.40_train_diffusion_unet_lowdim_tool_hang_lowdim",
     # ], 4500, 200, False
-    output_dirs, n_epochs, step_size, ignore_epochs = [
-        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/pr2xn6r0",
-        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/ldaug7ak",
-        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/wx0gvvmm",
-        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/kh1vqrxr",
-        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/zblar8fp",
-        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/z0hd44iz",
-        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/dtt8wm9u",
-        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/9ihrtr3m",
-        # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/4l71mq2q",
-    ], 1000000, 10000, True
+    # output_dirs, n_epochs, step_size, ignore_epochs = [
+    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/pr2xn6r0",
+    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/ldaug7ak",
+    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/wx0gvvmm",
+    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/kh1vqrxr",
+    #     "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/zblar8fp",
+    #     "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/z0hd44iz",
+    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/dtt8wm9u",
+    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/9ihrtr3m",
+    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/4l71mq2q",
+    # ], 1000000, 10000, True
 
     compare_runs(output_dirs, 0, n_epochs, step_size, ignore_epochs=ignore_epochs)
     # plot_minimal_sets(output_dirs, 0, 4500, 200, use_best=True)

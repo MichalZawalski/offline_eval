@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
 
+from trajectories_metadata import get_val_trajectories_metadata
 from utils import load_pkl_file, make_single_plots, get_correlation_metrics, convert_zip_to_dict, get_experiment_data, \
     make_combined_plot
 
@@ -26,15 +27,15 @@ def smooth_probability_loss(x, scale=math.pi):
 
 def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
                            do_plot=True, order_per_datapoint=False, plot_samples=False, plot_cum_minimals=False,
-                           use_smoothing=True):
+                           use_smoothing=True, trajectory_aggregations=None):
     metaname = output_dir.split('/')[-1]
     res = defaultdict(list)
     scores = []
     score_epochs = []
-
     per_datapoint = []
-
     pi_scores = None
+
+    val_lengths = get_val_trajectories_metadata(metaname)
 
     for epoch in range(start_epoch, end_epoch + 1, step_size):
         if epoch % 50 == 0:
@@ -46,7 +47,6 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
 
         val_data = data['val_data']
         prediction_results = data['val_prediction_results']
-        per_sample_losses = data['per_sample_losses']
 
         losses = defaultdict(list)
 
@@ -80,9 +80,34 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
             for k, v in losses.items():
                 per_datapoint[index][k].append(v[-1])
 
+        aggregations = {k: {'min': [], 'max': []} for k in losses.keys()}
+
+        if trajectory_aggregations is not None:
+            index = 0
+            for l in val_lengths:
+                l -= 7  # action horizon offset
+                for p_id in range(trajectory_aggregations):
+                    part = defaultdict(list)
+                    for i in range(l*p_id // trajectory_aggregations, l*(p_id+1) // trajectory_aggregations):
+                        for k, v in per_datapoint[index].items():
+                            part[k].append(v[-1])
+                        index += 1
+
+                    for k, v in part.items():
+                        if len(part[k]) == 0:
+                            print("Empty part for aggregation, skipping")
+                        else:
+                            aggregations[k]['min'].append(np.min(part[k]))
+                            aggregations[k]['max'].append(np.max(part[k]))
+
         res['epoch'].append(epoch)
         for k, v in losses.items():
             res[k].append(np.mean(v))
+
+        if trajectory_aggregations is not None:
+            for k in aggregations.keys():
+                for op in ['min', 'max']:
+                    res[f'({op}-{trajectory_aggregations}) {k}'].append(np.mean(aggregations[k][op]))
 
         if 'test/mean_score' in data:
             scores.append(data['test/mean_score'])
