@@ -16,25 +16,28 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
     for output_dir in output_dirs:
         metaname = output_dir.split('/')[-1]
         all_losses[metaname] = dict()
+        print('Processing run', metaname)
 
         for metric_func in [
             get_alternative_losses,
-            # get_min_losses,
+            get_min_losses,
             # get_closest_losses,
         ]:
 
-            res, scores, score_epochs, per_datapoint = metric_func(output_dir, start_epoch, end_epoch, step_size, do_plot=False, trajectory_aggregations=10)
+            res, scores, score_epochs, per_datapoint = metric_func(output_dir, start_epoch, end_epoch, step_size, do_plot=False, trajectory_aggregations=None)
 
             # res = {k: v for k, v in res.items() if k == 'epoch' or '(max' in k}
 
-            if ignore_epochs:
-                res = {k: [np.mean(v)] for k, v in res.items() if k != 'epoch'}
-                scores = [np.mean(scores)]
+            if ignore_epochs:  # consider only the last checkpoint
+                res = {k: [v[-1]] for k, v in res.items() if k != 'epoch'}
+                scores = [scores[-1]]
                 score_epochs = [0]
                 res['epoch'] = score_epochs
 
             all_losses[metaname] |= res
             all_scores[metaname] = scores
+
+            print(scores, res)
 
     correlations = get_cross_run_correlations(all_losses, all_scores, score_epochs)
 
@@ -123,13 +126,13 @@ def plot_minimal_sets(output_dirs, start_epoch, end_epoch, step_size=1, use_best
 
 
 if __name__ == '__main__':
-    output_dirs, n_epochs, step_size, ignore_epochs = [  # varying hyperparameters
-        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.45.25_train_diffusion_unet_lowdim_tool_hang_lowdim",
-        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.14_train_diffusion_unet_lowdim_tool_hang_lowdim",
-        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.43_train_diffusion_unet_lowdim_tool_hang_lowdim",
-        "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.49.23_train_diffusion_unet_lowdim_tool_hang_lowdim",
-        # "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.55.29_train_diffusion_unet_lowdim_tool_hang_lowdim",  # has more datapoints
-    ], 4500, 200, False
+    # output_dirs, n_epochs, step_size, ignore_epochs = [  # varying hyperparameters
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.45.25_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.14_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.48.43_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.49.23_train_diffusion_unet_lowdim_tool_hang_lowdim",
+    #     # "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2024.12.16/17.55.29_train_diffusion_unet_lowdim_tool_hang_lowdim",  # has more datapoints
+    # ], 4500, 200, False
     # output_dirs, n_epochs, step_size, ignore_epochs = [  # varying seeds
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.27.47_train_diffusion_unet_lowdim_tool_hang_lowdim",
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.30.51_train_diffusion_unet_lowdim_tool_hang_lowdim",
@@ -137,17 +140,22 @@ if __name__ == '__main__':
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.33.07_train_diffusion_unet_lowdim_tool_hang_lowdim",
     #     "/home/michal/code/offline_validation/new_DP_validation/data/outputs/2025.01.10/22.33.40_train_diffusion_unet_lowdim_tool_hang_lowdim",
     # ], 4500, 200, False
-    # output_dirs, n_epochs, step_size, ignore_epochs = [
-    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/pr2xn6r0",
-    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/ldaug7ak",
-    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/wx0gvvmm",
-    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/kh1vqrxr",
-    #     "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/zblar8fp",
-    #     "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/z0hd44iz",
-    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/dtt8wm9u",
-    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/9ihrtr3m",
-    #     # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/4l71mq2q",
-    # ], 1000000, 10000, True
+    output_dirs, n_epochs, step_size, ignore_epochs = [
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/pr2xn6r0",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/ldaug7ak",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/wx0gvvmm",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/kh1vqrxr",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories_final/zblar8fp",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/z0hd44iz",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/dtt8wm9u",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/9ihrtr3m",
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/4l71mq2q",
+        # # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/3d5ofxqu",  no scores
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/79zk07j7",
+        # #"/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/f4p1we4b",  no scores
+        "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/reewbrpb",
+        # # "/home/michal/project_data/offline_validation/datasets/pi_datasets/2024_12_19_trajectories/wbdy7v5h",  no scores
+    ], 1000000, 10000, True
 
     compare_runs(output_dirs, 0, n_epochs, step_size, ignore_epochs=ignore_epochs)
     # plot_minimal_sets(output_dirs, 0, 4500, 200, use_best=True)

@@ -35,15 +35,16 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
     per_datapoint = []
     pi_scores = None
 
-    val_lengths = get_val_trajectories_metadata(metaname)
+    if trajectory_aggregations is not None:
+        val_lengths = get_val_trajectories_metadata(metaname)
 
     for epoch in range(start_epoch, end_epoch + 1, step_size):
-        if epoch % 50 == 0:
-            print(f"Processing epoch {epoch}")
-
         data, batch_size = get_experiment_data(output_dir, epoch)
         if data is None:
             continue
+
+        if epoch % 50 == 0:
+            print(f"Processing epoch {epoch}")
 
         val_data = data['val_data']
         prediction_results = data['val_prediction_results']
@@ -121,7 +122,8 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
                 with open('pi_results.csv', newline='') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',', quotechar='"')
                     for row in reader:
-                        pi_scores[row[0]] = float(row[5].split(' ')[0]) / float(row[5].split(' ')[-1])
+                        # pi_scores[row[0]] = float(row[5].split(' ')[0]) / float(row[5].split(' ')[-1])  # initial
+                        pi_scores[row[0]] = float(row[4])  # reruns
 
             for k, v in pi_scores.items():
                 if f'{metaname}_{epoch}_' in k:
