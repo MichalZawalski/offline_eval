@@ -24,7 +24,7 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
             # get_closest_losses,
         ]:
 
-            res, scores, score_epochs, per_datapoint = metric_func(output_dir, start_epoch, end_epoch, step_size, do_plot=False, trajectory_aggregations=None)
+            res, scores, score_epochs, per_datapoint = metric_func(output_dir, start_epoch, end_epoch, step_size, do_plot=False)
 
             # res = {k: v for k, v in res.items() if k == 'epoch' or '(max' in k}
 
@@ -52,8 +52,8 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
         make_combined_plot(plot, corr_name, 'cross-run', make_legend=True,
                            do_plot_log=False, mark_points=ignore_epochs)
 
-    for metric in ['top_10%_losses', 'l2_sq', 'smooth_prob_pi']:
-        make_combined_plot({'epoch': score_epochs} | {metaname: np.log(all_losses[metaname][metric]) for metaname in all_losses if metric in all_losses[metaname]},
+    for metric in ['top_10%_losses', 'l2', 'smooth_prob_5', 'geom']:
+        make_combined_plot({'epoch': score_epochs} | {metaname: (all_losses[metaname][metric]) for metaname in all_losses if metric in all_losses[metaname]},
                            metric, 'cross-run', make_legend=True, do_plot_log=False, mark_points=ignore_epochs)
 
     make_combined_plot(

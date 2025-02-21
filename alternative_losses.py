@@ -86,7 +86,10 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
         if trajectory_aggregations is not None:
             index = 0
             for l in val_lengths:
-                l -= 7  # action horizon offset
+                # l -= 7  # action horizon offset tool hang
+                # l -= 15  # action horizon offset kitchen
+                l -= 3  # action horizon offset block push
+
                 for p_id in range(trajectory_aggregations):
                     part = defaultdict(list)
                     for i in range(l*p_id // trajectory_aggregations, l*(p_id+1) // trajectory_aggregations):
