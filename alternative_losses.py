@@ -72,6 +72,14 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
             losses['smooth_prob_pi'].append(smooth_probability_loss(l2_distance, scale=math.pi))
             losses['smooth_prob_5'].append(smooth_probability_loss(l2_distance, scale=5))
 
+            all_predictions = [pred[index_in_batch] for pred in prediction_results[batch_number]['multiple_preds']]
+            all_predictions_prob = [smooth_probability_loss(np.linalg.norm(gt_action - pred[index_in_batch], ord=2), scale=math.pi)
+                                    for pred in prediction_results[batch_number]['multiple_preds']]
+            losses['best_prob'].append(np.min(all_predictions_prob))
+            losses['mean_prob'].append(np.mean(all_predictions_prob))
+
+            losses['variance'].append(np.mean(np.var(np.stack(all_predictions, axis=0), axis=0)))
+
             # losses['per_sample_loss'].append(np.sum(np.abs(data['per_sample_losses'][batch_number][index_in_batch])))
             # losses['torch_mse'].append(torch.nn.functional.mse_loss(torch.tensor(pred_action), torch.tensor(gt_action)).item())
 
@@ -81,14 +89,14 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
             for k, v in losses.items():
                 per_datapoint[index][k].append(v[-1])
 
-        aggregations = {k: {'min': [], 'max': []} for k in losses.keys()}
+        aggregations = {k: defaultdict(list) for k in losses.keys()}
 
         if trajectory_aggregations is not None:
             index = 0
             for l in val_lengths:
                 # l -= 7  # action horizon offset tool hang
-                # l -= 15  # action horizon offset kitchen
-                l -= 3  # action horizon offset block push
+                l -= 15  # action horizon offset kitchen
+                # l -= 3  # action horizon offset block push
 
                 for p_id in range(trajectory_aggregations):
                     part = defaultdict(list)
@@ -103,6 +111,11 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
                         else:
                             aggregations[k]['min'].append(np.min(part[k]))
                             aggregations[k]['max'].append(np.max(part[k]))
+                            if 'prob' in k:
+                                for threshold in [0.6, 0.7, 0.8, 0.9]:
+                                    aggregations[k][f'hard threshold {threshold}'].append(np.any(np.array(part[k]) > threshold))
+                                    # aggregations[k][f'soft threshold {threshold} penalty'].append(np.mean((np.array(part[k]) > threshold) * np.array(part[k])))
+                                    # aggregations[k][f'soft threshold {threshold} reward'].append(np.mean((np.array(part[k]) < threshold) * np.array(part[k])))
 
         res['epoch'].append(epoch)
         for k, v in losses.items():
@@ -112,6 +125,9 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
             for k in aggregations.keys():
                 for op in ['min', 'max']:
                     res[f'({op}-{trajectory_aggregations}) {k}'].append(np.mean(aggregations[k][op]))
+                for op in aggregations[k].keys():
+                    if 'threshold' in op:
+                        res[f'({op}) {k}'].append(np.mean(aggregations[k][op]))
 
         if 'test/mean_score' in data:
             scores.append(data['test/mean_score'])
