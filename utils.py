@@ -37,11 +37,14 @@ def make_single_plots(plot_data, name, metaname, smooth_window=1):
 
 
 def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=False, do_plot_log=True,
-                       figsize=None, try_log_transform=False, mark_points=False):
+                       figsize=None, try_log_transform=False, mark_points=False, epoch_label="Epoch", ylimit=None):
     if figsize is not None:
         fig, ax1 = plt.subplots(figsize=figsize)
     else:
         fig, ax1 = plt.subplots()
+
+    if ylimit is not None:
+        ax1.set_ylim(ylimit)
 
     for k, values in plot_data.items():
         if k == 'epoch':
@@ -63,13 +66,22 @@ def make_combined_plot(plot_data, name, metaname, smooth_window=1, make_legend=F
                      np.log(smooth_values), label=f'log {k}', color='r')
 
 
-    plt.xlabel('Epoch')
+    plt.xlabel(epoch_label)
     plt.title(name)
     # plt.yscale('log')
     if make_legend:
         plt.legend()
     plt.text(0.01, -0.08, metaname, fontsize=8, ha='left', va='center', transform=plt.gca().transAxes)
     plt.savefig(f'figures/{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}_{name.lower().replace(" ", "_")}.png')
+    plt.close()
+
+
+def make_histogram(hist, bins, name, metaname):
+    print(hist, bins)
+    plt.bar(x=[f"{np.log(x):.3f}" for x in (bins[1:] + bins[:-1]) / 2], height=hist)
+    plt.title(name)
+    plt.text(0.01, -0.08, metaname, fontsize=8, ha='left', va='center', transform=plt.gca().transAxes)
+    plt.savefig(f'figures/{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}_{name.lower().replace(" ", "_")}_{metaname}.png')
     plt.close()
 
 
@@ -347,6 +359,12 @@ def get_experiment_data(path, epoch):
             data[k].append(dict_shard[k])
 
     return data, data['val_prediction_results'][0]['gt_action'].shape[0]
+
+
+def get_vectors_variance(array):
+    array = np.array(array)
+    assert len(array.shape) == 2
+    return np.mean(np.var(array, axis=0))
 
 
 if __name__ == '__main__':

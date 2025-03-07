@@ -25,8 +25,8 @@ def main():
     # output_dir, n_epochs, precision = NEW_DP_DIR + "2024.12.09/15.28.39_train_diffusion_unet_lowdim_lift_lowdim", 4900, sim_precision
 
     # output_dir, n_epochs, precision = NEW_DP_DIR + "2024.12.16/17.45.25_train_diffusion_unet_lowdim_tool_hang_lowdim", 4500, 200
-    # output_dir, n_epochs, precision = NEW_DP_DIR + "2025.02.28/17.18.37_train_diffusion_unet_lowdim_blockpush_lowdim_seed_abs", 1750, sim_precision
-    output_dir, n_epochs, precision = NEW_DP_DIR + "2025.02.28/17.19.37_train_diffusion_unet_lowdim_kitchen_lowdim", 1750, sim_precision
+    output_dir, n_epochs, precision = NEW_DP_DIR + "2025.02.28/17.18.37_train_diffusion_unet_lowdim_blockpush_lowdim_seed_abs", 1750, sim_precision
+    # output_dir, n_epochs, precision = NEW_DP_DIR + "2025.02.28/17.19.37_train_diffusion_unet_lowdim_kitchen_lowdim", 1750, sim_precision
 
     # output_dir, n_epochs, precision = PI_DIR + "full_train_bc_polar-solver_noise-bits-0_dim-64_id_460696", 4900, sim_precision
     # output_dir, n_epochs, precision = PI_DIR + "full_train_bc_cartesian-solver_noise-bits-10_dim-32_id_496904", 4900, sim_precision
@@ -47,7 +47,7 @@ def main():
 
     # get_oracle_losses(output_dir, start_epoch=0, end_epoch=n_epochs, oracle_epoch=30, step_size=precision)
     # get_min_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=precision, use_smoothing=True)
-    get_alternative_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=precision, order_per_datapoint=False, do_plot=True, use_smoothing=False, trajectory_aggregations=1)
+    get_alternative_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=precision, order_per_datapoint=False, do_plot=True, use_smoothing=True, trajectory_aggregations=1)
     # get_closest_losses(output_dir, start_epoch=0, end_epoch=n_epochs, step_size=precision)
 
 
