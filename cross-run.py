@@ -5,6 +5,7 @@ import numpy as np
 from alternative_losses import get_alternative_losses
 from closest_loss import get_closest_losses
 from min_losses import get_min_losses
+from trajectories_metadata import get_task_variance
 from utils import get_cross_run_correlations, make_combined_plot, get_experiment_data, get_vectors_variance, \
     make_histogram
 
@@ -53,8 +54,9 @@ def compare_runs(output_dirs, start_epoch, end_epoch, step_size=1, plot_minimal_
         make_combined_plot(plot, corr_name, 'cross-run', make_legend=True,
                            do_plot_log=False, mark_points=ignore_epochs)
 
-    for metric in ['top_10%_losses', 'l2', 'smooth_prob_5', 'geom']:
-        make_combined_plot({'epoch': score_epochs} | {metaname: (all_losses[metaname][metric]) for metaname in all_losses if metric in all_losses[metaname]},
+    # for metric in ['top_10%_losses', 'l2', 'smooth_prob_5', 'geom']:
+    for metric in ['best_prob', 'mean_prob']:
+        make_combined_plot({'epoch': score_epochs} | {metaname: np.log(all_losses[metaname][metric]) for metaname in all_losses if metric in all_losses[metaname]},
                            metric, 'cross-run', make_legend=True, do_plot_log=False, mark_points=ignore_epochs)
 
     make_combined_plot(
@@ -108,11 +110,20 @@ def get_cross_run_variance(output_dirs, start_epoch, end_epoch, step_size=1):
         for metaname in epoch_variances.keys():
             all_variances[metaname].append(np.mean(epoch_variances[metaname]))
 
-        hist, bins = np.histogram(np.log(epoch_combined_variance), bins=np.linspace(-20, 0, 41))
+        log_variances = get_task_variance('tool_hang')
+        mask = log_variances < -7.5
+
+        fixed_bins = np.linspace(-20, 0, 41)
+        hist, bins = np.histogram(np.log(epoch_combined_variance), bins=fixed_bins)
+        hist2, _ = np.histogram(np.log(epoch_combined_variance)[mask], bins=fixed_bins)
+        hist3, _ = np.histogram(np.log(epoch_combined_variance)[~mask], bins=fixed_bins)
+
         metanames = list(epoch_variances.keys())
-        make_combined_plot({'epoch': ((bins[1:] + bins[:-1]) / 2), 'variance': (hist + 0)},
+        make_combined_plot({'epoch': ((bins[1:] + bins[:-1]) / 2), 'variance': (hist + 0), 'variance_masked': (hist2 + 0), 'variance_unmasked': (hist3 + 0)},
                            f'Variance distribution (epoch {epoch})', metaname=str(metanames),
                            epoch_label='Log variance', ylimit=(0, 400))
+
+        # print('epoch combined variance', epoch, list(np.log(epoch_combined_variance)))
 
     plot = {
         'epoch': list(range(start_epoch, end_epoch + 1, step_size)),
