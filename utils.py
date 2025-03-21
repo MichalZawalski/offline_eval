@@ -28,11 +28,11 @@ def smooth_data(data, window_size=5):
     return np.array([np.mean(data[window_size * i:window_size * (i + 1)]) for i in range(len(data) // window_size)])
 
 
-def make_single_plots(plot_data, name, metaname, smooth_window=1):
+def make_single_plots(plot_data, name, metaname, smooth_window=1, initial_skip=0):
     for k, values in plot_data.items():
         if k == 'epoch':
             continue
-        make_combined_plot({k: values, 'epoch': plot_data['epoch']},
+        make_combined_plot({k: values[initial_skip:], 'epoch': plot_data['epoch'][initial_skip:]},
                            f'{name}: {k}', metaname, smooth_window)
 
 

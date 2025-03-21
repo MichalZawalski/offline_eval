@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
 
-from trajectories_metadata import get_val_trajectories_metadata
+from trajectories_metadata import get_val_trajectories_metadata, get_task_variance
 from utils import load_pkl_file, make_single_plots, get_correlation_metrics, convert_zip_to_dict, get_experiment_data, \
     make_combined_plot
 
@@ -27,13 +27,16 @@ def smooth_probability_loss(x, scale=math.pi):
 
 def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
                            do_plot=True, order_per_datapoint=False, plot_samples=False, plot_cum_minimals=False,
-                           use_smoothing=True, trajectory_aggregations=None):
+                           use_smoothing=True, trajectory_aggregations=None, plot_mask_distribution=False):
     metaname = output_dir.split('/')[-1]
     res = defaultdict(list)
     scores = []
     score_epochs = []
     per_datapoint = []
     pi_scores = None
+
+    log_variances = get_task_variance('tool_hang')
+    datapoints_mask = log_variances < -7.5  # tool hang
 
     if trajectory_aggregations is not None:
         val_lengths = get_val_trajectories_metadata(metaname)
@@ -72,13 +75,13 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
             losses['smooth_prob_pi'].append(smooth_probability_loss(l2_distance, scale=math.pi))
             losses['smooth_prob_5'].append(smooth_probability_loss(l2_distance, scale=5))
 
-            all_predictions = [pred[index_in_batch] for pred in prediction_results[batch_number]['multiple_preds']]
-            all_predictions_prob = [smooth_probability_loss(np.linalg.norm(gt_action - pred[index_in_batch], ord=2), scale=math.pi)
-                                    for pred in prediction_results[batch_number]['multiple_preds']]
-            losses['best_prob'].append(np.min(all_predictions_prob))
-            losses['mean_prob'].append(np.mean(all_predictions_prob))
-
-            losses['variance'].append(np.mean(np.var(np.stack(all_predictions, axis=0), axis=0)))
+            # all_predictions = [pred[index_in_batch] for pred in prediction_results[batch_number]['multiple_preds']]
+            # all_predictions_prob = [smooth_probability_loss(np.linalg.norm(gt_action - pred[index_in_batch], ord=2), scale=math.pi)
+            #                         for pred in prediction_results[batch_number]['multiple_preds']]
+            # losses['best_prob'].append(np.min(all_predictions_prob))
+            # losses['mean_prob'].append(np.mean(all_predictions_prob))
+            #
+            # losses['variance'].append(np.mean(np.var(np.stack(all_predictions, axis=0), axis=0)))
 
             # losses['per_sample_loss'].append(np.sum(np.abs(data['per_sample_losses'][batch_number][index_in_batch])))
             # losses['torch_mse'].append(torch.nn.functional.mse_loss(torch.tensor(pred_action), torch.tensor(gt_action)).item())
@@ -88,6 +91,12 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
 
             for k, v in losses.items():
                 per_datapoint[index][k].append(v[-1])
+
+        if plot_mask_distribution:
+            placing = [x for _, x in sorted(zip(losses['l2'], datapoints_mask))]
+            step_size = 20
+            plot_data = [np.mean(placing[i:i+step_size]) for i in range(0, len(placing), step_size)]
+            make_combined_plot({'density': plot_data, 'epoch': list(range(len(plot_data)))}, f'Low-variance density (epoch {epoch})', metaname, do_plot_log=False)
 
         aggregations = {k: defaultdict(list) for k in losses.keys()}
 
@@ -119,7 +128,8 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
 
         res['epoch'].append(epoch)
         for k, v in losses.items():
-            res[k].append(np.mean(v))
+            res[k].append(np.mean(np.array(v)))
+            # res[k].append(np.mean(np.array(v)[datapoints_mask]))
 
         if trajectory_aggregations is not None:
             for k in aggregations.keys():
@@ -151,9 +161,9 @@ def get_alternative_losses(output_dir, start_epoch, end_epoch, step_size=1,
 
     if do_plot:
         smooth_window = 5 if use_smoothing else 1
-        make_single_plots(res, 'Alternative losses', metaname, smooth_window)
+        make_single_plots(res, 'Alternative losses', metaname, smooth_window, initial_skip=0)
         if scores:
-            make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname, smooth_window)
+            make_single_plots({'mean_score': scores, 'epoch': score_epochs}, 'Mean score', metaname, smooth_window, initial_skip=0)
 
         print(get_correlation_metrics(res, scores, score_epochs))
 
